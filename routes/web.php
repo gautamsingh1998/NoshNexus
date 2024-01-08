@@ -27,6 +27,13 @@ $router->get('/', function () use ($router) {
     Route::post('register', 'AuthController@register');
     Route::post('login', 'AuthController@login');
 
+    # Send forget password otp to user email
+    Route::post('forget-password','AuthController@forgetPassword');
+
+    # Reset Password
+    Route::post('reset-password','AuthController@resetPassword');
+    Route::post('verify-otp','AuthController@verifyOtp');
+
     Route::group(['middleware' => 'auth:api'], function() {
         Route::post('logout', 'AuthController@logout');
         Route::post('refresh', 'AuthController@refresh');

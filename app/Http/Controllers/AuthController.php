@@ -4,12 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ForgetPasswordRequest;
+
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\ResetPasswordRequest;
+use App\Jobs\SendForgetPasswordEmailJob;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -20,7 +26,7 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register','forgetPassword']]);
     }
 
     public function register(Request $request)
@@ -136,4 +142,67 @@ class AuthController extends Controller
             'expires_in' => auth()->factory()->getTTL() * 60
         ]);
     }
+
+    /**
+     * Forget Password 
+    */
+    public function forgetPassword(Request $request) {
+        //ForgetPasswordRequest::validate($request);
+       $email = request()->only('email');
+       $user = User::where('email', $email)->first();
+
+        if( $user){
+            $otp = rand(1000,9999);
+            
+            $data = array('otp'=> $otp);
+
+            try {
+                $otp_updated = Carbon::now();
+
+                dispatch(new SendForgetPasswordEmailJob($user, $otp));
+                //SendForgetPasswordEmailJob::dispatch($user, $otp)->tries(3);
+
+                
+                $user = User::where('email','=',$email)->update(['otp' => $otp, 'otp_update_at' => $otp_updated->toDateTimeString()]);
+              
+                return response()->json(['success'=>true,'msg'=>' Email has been sent.'], 200);
+            } catch (Throwable $e) {
+                return response()->json(['success'=>false, 'msg' => $e->getMessage() ], 401);
+            }
+        }else{
+            return response()->json(['success'=>false, 'msg' => "Email doesn't exist."], 401);
+        }
+    }
+    
+    /**
+     * Reset Password
+    */
+    public function resetPassword(Request $request)
+    {
+
+        // Check input is valid
+      ResetPasswordRequest::validate($request);
+        $email = request()->only('email');
+        $user = User::where('email', $email)->first();
+
+        if($user){
+            // Reset the password
+            $user->password = Hash::make($request->password);
+            $user->save();
+            return response(['success'=>true, 'msg' => "Password updated successfully!."], 200);
+        }else{
+            return response(['success'=>true,'msg' => "Otp doesn't match."], 400);
+        }
+    }
+
+    public function verifyOtp(Request $request){
+        $user = User::where('otp_update_at',  '>=',  Carbon::now()->subMinutes(5)->toDateTimeString() )->where('otp', $request->otp)->first();
+        if($user){
+            return response(['success'=>true, "msg" => "OTP has been verified."], 200);
+        }
+        else{
+            return response(['success'=>false, 'msg' => 'OTP is Invalid!'], 400);
+        }
+    }
+
 }

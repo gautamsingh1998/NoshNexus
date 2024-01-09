@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ForgetPasswordRequest;
 use App\Http\Requests\LoginRequest;
@@ -14,9 +13,9 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Throwable;
- use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -27,24 +26,22 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register','forgetPassword','resetPassword','verifyOtp']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register','forgetPassword','resetPassword','verifyOtp','redirectToGoogle','handleGoogleCallback']]);
     }
 
     public function register(Request $request)
     {
         try {
-                // Validate the incoming request data
-                RegisterRequest::validate($request);
-                // Create a new user
-                $user = User::create([
-                    'username' => $request->username,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
-                ]);
+            RegisterRequest::validate($request);
+            
+            $user = User::create([
+                'username' => $request->username,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
             if ($user) {
                 # Attempt to log in the user and generate a token
-              
                 $credentials = $request->only(['email', 'password']);
 
                 if (! $token = auth()->attempt($credentials)) {
@@ -52,14 +49,19 @@ class AuthController extends Controller
                 }
                 # Respond with the generated tokens
                 return $this->respondWithToken($token);
+
             } else {
                 return response()->json(['success' => false, 'msg' => 'User creation failed.'], 500);
             }
+            return response()->json(['success' => true, 'msg' => 'User registered successfully'], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()], 422);
+
         } catch (Exception $e) {
-            // Handle any exceptions that may occur during registration
-           ($e->getMessage());
             return response()->json(['success' => false, 'msg' => 'Something went wrong with the request.'], 500);
         }
+
     }
 
 
@@ -68,33 +70,43 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
- 
-
     public function login(Request $request)
     {
         try {
-            // Validate the login request
             LoginRequest::validate($request);
 
-            // Attempt to authenticate the user
             $credentials = request(['email', 'password']);
             if (! $token = auth()->attempt($credentials)) {
                 return response()->json(['error' => 'Email and password do not match.'], 401);
             }
 
-            // If authentication is successful, respond with the token
             return $this->respondWithToken($token);
 
         } catch (ValidationException $e) {
-            // Handle validation errors
             return response()->json(['error' => 'Validation failed', 'errors' => $e->validator->errors()], 422);
 
         } catch (Exception $e) {
-            // Handle other exceptions
             return response()->json(['error' => 'Something went wrong', 'msg' => $e->getMessage()], 500);
         }
     }
 
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $user = Socialite::driver('google')->user();
+
+            $token = auth()->login($user);
+
+            return $this->respondWithToken($token);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong', 'msg' => $e->getMessage()], 500);
+        }
+    }
 
     /**
      * Get the authenticated User.
@@ -123,7 +135,7 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-     public function refresh()
+    public function refresh()
     {
         return $this->respondWithToken(auth()->refresh());
     }
@@ -140,7 +152,8 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
+            'user' => auth()->user()
+            //'expires_in' => auth()->factory()->getTTL() * 60
         ]);
     }
 

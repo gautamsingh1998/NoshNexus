@@ -6,7 +6,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class SendForgetPasswordEmailJob implements ShouldQueue
@@ -36,17 +35,10 @@ class SendForgetPasswordEmailJob implements ShouldQueue
      */
     public function handle()
     {
-         Log::info('Start handling SendForgetPasswordEmailJob.');
-    
-    // Your existing code here
-
-  
-       $data = ['otp' => $this->otp];
+        $data = ['otp' => $this->otp];
         Mail::send('mail.forget_password', $data, function ($message) {
-    $message->to($this->user->email, $this->user->name)->subject('Forget Password');
-    $message->from(env('FROM_EMAIL'), env('APP_NAME'));
-});
-
-          Log::info('End handling SendForgetPasswordEmailJob.');
+            $message->to($this->user->email, $this->user->name)->subject('Forget Password');
+            $message->from(config('constant.admin_email'), config('constant.app_name'));
+        });
     }
 }

@@ -26,6 +26,7 @@ $app = new Laravel\Lumen\Application(
  $app->withFacades();
 class_alias(Tymon\JWTAuth\Facades\JWTAuth::class, 'JWTAuth');
 class_alias(Tymon\JWTAuth\Facades\JWTFactory::class, 'JWTFactory');
+class_alias(Laravel\Socialite\Facades\Socialite::class, 'Socialite');
 
 
  $app->withEloquent();
@@ -88,11 +89,7 @@ $app->configure('queue');
  $app->routeMiddleware([
     'auth' => App\Http\Middleware\Authenticate::class,
  ]);
-/* $app->middleware([
-    // ...
-    App\Http\Middleware\JwtMiddleware::class,
-    'auth:api',
-]); */
+
 /*
 |--------------------------------------------------------------------------
 | Register Service Providers
@@ -109,6 +106,7 @@ $app->configure('queue');
  $app->register(App\Providers\EventServiceProvider::class);
  $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
  $app->register(Illuminate\Mail\MailServiceProvider::class);
+ $app->register(Laravel\Socialite\SocialiteServiceProvider::class);
 
  
 

@@ -18,16 +18,17 @@ use Illuminate\Support\Facades\Route;
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
-    
-    //Route::post('register', 'AuthController@register');
-//Route::post('login', 'AuthController@login');
-    Route::group([
+
+Route::group([
     'prefix' => 'api',
+
 ], function ($router) {
     Route::post('register', 'AuthController@register');
     Route::post('login', 'AuthController@login');
 
-    # Send forget password otp to user email
+    Route::get('auth/google/callback', 'AuthController@handleGoogleCallback');
+    Route::get('auth/google', 'AuthController@redirectToGoogle');
+
     Route::post('forget-password','AuthController@forgetPassword');
 
     # Reset Password

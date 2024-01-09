@@ -11,7 +11,7 @@ class LoginRequest
     {
         $validator = app('validator')->make($request->all(), [
             'email' => 'required|email',
-            'password' => 'min:6|required',
+            'password' => 'required|min:6'
         ]);
 
         if ($validator->fails()) {

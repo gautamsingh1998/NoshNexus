@@ -107,7 +107,6 @@ $app->configure('queue');
  $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
  $app->register(Illuminate\Mail\MailServiceProvider::class);
  $app->register(Laravel\Socialite\SocialiteServiceProvider::class);
-
  
 
 /*

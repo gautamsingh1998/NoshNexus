@@ -3,19 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Validation\ValidationException;
 use App\Http\Requests\ForgetPasswordRequest;
-use App\Http\Requests\LoginRequest;
-use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\ResetPasswordRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\LoginRequest;
 use App\Jobs\SendForgetPasswordEmailJob;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use App\Models\User;
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\Request;
 use Throwable;
-use Illuminate\Validation\ValidationException;
-use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -26,7 +26,11 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register','forgetPassword','resetPassword','verifyOtp','redirectToGoogle','handleGoogleCallback']]);
+        $this->middleware('auth:api', ['except' => [
+            'login', 'register','forgetPassword',
+            'resetPassword','verifyOtp',
+            'redirectToGoogle','handleGoogleCallback'
+        ]]);
     }
 
     public function register(Request $request)
@@ -101,7 +105,6 @@ class AuthController extends Controller
             $user = Socialite::driver('google')->user();
 
             $token = auth()->login($user);
-
             return $this->respondWithToken($token);
         } catch (Exception $e) {
             return response()->json(['error' => 'Something went wrong', 'msg' => $e->getMessage()], 500);
@@ -201,7 +204,7 @@ class AuthController extends Controller
             $user = User::where('email', $email)->first();
 
             if ($user) {
-                // Reset the password
+                # Reset the password
                 $user->password = Hash::make($password);
                 $user->save();
 

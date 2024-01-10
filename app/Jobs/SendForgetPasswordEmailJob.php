@@ -37,7 +37,7 @@ class SendForgetPasswordEmailJob implements ShouldQueue
     {
         $data = ['otp' => $this->otp];
         Mail::send('mail.forget_password', $data, function ($message) {
-            $message->to($this->user->email, $this->user->name)->subject('Forget Password');
+            $message->to($this->user->email, $this->user->username)->subject('Forget Password');
             $message->from(config('constant.admin_email'), config('constant.app_name'));
         });
     }
